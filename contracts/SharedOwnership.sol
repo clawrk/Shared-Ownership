@@ -5,19 +5,16 @@ pragma solidity ^0.8.1;
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/Pausable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/IERC721Receiver.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/ERC721.sol";
+import "./ReEntrancyGuard.sol";
 
-
-contract ReEntrancyGuard {
-    bool internal locked;
-
-    modifier noReentrant() {
-        require(!locked, "No re-entrancy");
-        locked = true;
-        _;
-        locked = false;
-    }
-}
-
+/**
+When will this contract be used ? 
+-> When a group of people want joint ownership over an entitiy.
+-> The current owner of the Asset should be able to do the following : 
+    1) Transfer ownership to the SharedOwnership smart contract initiated by the group customers
+    2) Recieve funds from smart contract
+ */
 contract SharedOwnership is Ownable, Pausable, IERC721Receiver, ReEntrancyGuard {
 
     enum DECISION_POLICY { MAJORITY_APPROVAL, COMBINED_APPROVAL }
@@ -57,7 +54,7 @@ contract SharedOwnership is Ownable, Pausable, IERC721Receiver, ReEntrancyGuard 
         uint256,
         bytes calldata
     ) external override pure returns (bytes4) {
-        return IERC721Receiver.onERC721Received.selector;
+        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     }
 
     /*
@@ -97,9 +94,12 @@ contract SharedOwnership is Ownable, Pausable, IERC721Receiver, ReEntrancyGuard 
     The asset is purchased in this step
     Perform this operation once all members have been added & there are funds in wallet
     */
-    function purchaseAsset() public onlyOwner whenNotPaused payable {
-        // require(assetSelectedFlag == true, "Please confim the asset before proceeding");
-    }
+    // function purchaseAsset() public onlyOwner whenNotPaused payable {
+    //     // require(assetSelectedFlag == true, "Make sure you have selected the asset");
+    //     // make sure that the selected address is valid & secure
+    //     ERC721 nft_contract = ERC721(sharedAssetAddress);
+    //     address owner = nft_contract.ownerOf(sharedTokenId);
+    // }
 
     function distribute() public noReentrant payable {
         for(uint8 i = 0; i < memberCount; i++) {
